@@ -4,6 +4,25 @@
   
     
     <entry>
+      <title>wrk快速上手</title>
+      <link href="/2025/11/04/other/wrk%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/"/>
+      <url>/2025/11/04/other/wrk%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/</url>
+      
+        <content type="html"><![CDATA[<h1>wrk快速上手</h1><blockquote><p>1min看完就能上手！</p></blockquote><p>一句话介绍：wrk 是一个<strong>现代化的 HTTP 基准测试工具</strong>，它能够在单核 CPU 上以较少的线程产生强大的负载。</p><p>说白了是一个简单易用的接口性能测试工具，对开发人员（非运维）来说上手成本低，几乎零学习成本。</p><p>另外wrk是在linux环境下使用的，所以windows平台测试使用的话使用docker。</p><h2 id="Linux环境使用wrk">Linux环境使用wrk</h2><p>这种教程很多，例如<a href="https://www.cnblogs.com/quanxiaoha/p/10661650.html">性能测试工具wrk教程</a>。</p><h2 id="Docker中使用wrk">Docker中使用wrk</h2><p>演示的宿主机为windows。</p><p>使用的容器仓库<a href="https://github.com/William-Yeh/docker-wrk?tab=readme-ov-file">github地址</a>。</p><p>加上<code>--rm</code>，用完即删，是因为这个容器仅仅用于临时的简单测试，不会占空间。</p><blockquote><p>执行run语句时本地若无镜像则自动会pull。</p></blockquote><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> ghcr.io/william-yeh/wrk <span class="comment"># 首次运行测试</span></span><br><span class="line"></span><br><span class="line">docker run --<span class="built_in">rm</span> ghcr.io/william-yeh/wrk -t&lt;线程数&gt; -c&lt;并发量&gt; -d&lt;时间&gt; --latency &lt;接口地址&gt; <span class="comment"># 模板1 </span></span><br><span class="line"></span><br><span class="line">docker run --<span class="built_in">rm</span> -v &lt;宿主机上.lua脚本路径&gt;:&lt;容器内映射.lua文件&gt; ghcr.io/william-yeh/wrk -t&lt;线程数&gt; -c&lt;线程数&gt; -d&lt;时间&gt; -s &lt;容器内.lua文件&gt; --latency &lt;接口地址&gt;</span><br></pre></td></tr></table></figure><p>e.g.1，表示使用8个线程、并发量200，对百度进行8s的压测。</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> ghcr.io/william-yeh/wrk -t8 -c200 -d10s --latency http://www.baidu.com</span><br></pre></td></tr></table></figure><p>e.g.2，路径写法是linux风格的、windows也可改为对应风格</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> -v $(<span class="built_in">pwd</span>)/test.lua:/data/test.lua ghcr.io/william-yeh/wrk -t8 -c200 -d10s -s /data/test.lua --latency http://www.baidu.com</span><br></pre></td></tr></table></figure><p>e.g.3，注意要测试宿主机（是Windows或macOS）的<code>127.0.0.1</code>时，要使用特殊的 DNS 名称<code>host.docker.internal</code></p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run --<span class="built_in">rm</span> -v E:\Project\java\test-project\wrkbench\test.lua:/data/test.lua ghcr.io/william-yeh/wrk -t50 -c200 -d30s -s /data/test.lua --latency http://host.docker.internal:8085/example/hello</span><br></pre></td></tr></table></figure><p>ok你现在已经会举一反三了。</p><h2 id="结果说明">结果说明</h2><p>压测百度的结果：</p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/wrk快速上手/blog-20251104161928301.png" alt="image-20251104145550455" style="zoom: 80%;" /><p>结果说明：</p><p>可以看到最后每秒吞吐量约为215.20</p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/wrk快速上手/blog-20251104161928303.png" alt="image-20251104145834544" style="zoom:95%;" /><p>Latency：延迟。Req/Sec：每秒请求数。Stdev为标准差。</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/wrk%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/blog-20251104161928304.png" alt="image-20251104150326968"></p><p>Latency Distribution：分位延迟。可以理解为90%的请求能在390ms内，99%的请求再1.24s以内。</p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/wrk快速上手/blog-20251104161928305.png" alt="image-20251104150434335" style="zoom:95%;" /><p>可见错误0个，超时158个。</p><p>这里最后的Requests/sec是指所有线程的情况，所以和之前的Req/Sec数据不一样。</p><h2 id="注意事项">注意事项</h2><p>压测结果与机器性能有关！</p><p>无法模拟一个接口的极限情况（因为一台机器压测力度有限）。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> wrk </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Docker快速上手</title>
       <link href="/2025/11/02/other/Docker%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/"/>
       <url>/2025/11/02/other/Docker%E5%BF%AB%E9%80%9F%E4%B8%8A%E6%89%8B/</url>
