@@ -4,6 +4,82 @@
   
     
     <entry>
+      <title>MySQL分库分表</title>
+      <link href="/2025/11/24/MySQL/MySQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/"/>
+      <url>/2025/11/24/MySQL/MySQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/</url>
+      
+        <content type="html"><![CDATA[<h1 id="MySQL分库分表"><a href="#MySQL分库分表" class="headerlink" title="MySQL分库分表"></a>MySQL分库分表</h1><p>总的来说，“分库分表”是用于解决高并发下数据库的连接数不足的性能瓶颈问题、大数据量查询性能瓶颈问题。</p><p>实际上分库分表是一种解决数据库性能瓶颈的“最终手段”，非到万不得已不会使用。（在分库分表之前还有索引优化查询、增加查询缓存中间件等手段可以使用）。因为分库分表虽然能解决一部分问题，也会带来新的问题，提高了架构复杂程度，增加维护成本。</p><h2 id="分库、分表、分库分表"><a href="#分库、分表、分库分表" class="headerlink" title="分库、分表、分库分表"></a>分库、分表、分库分表</h2><p>本质上这是有三种情况——分库不分表、分表不分库、分库又分表。</p><p>简而言之，分库是为了解决高并发下连接数不足的问题（因为单库的连接数是有限的）；分表是为了解决单表数据量过大（通常数据超过500万条，表大小超过2GB）、查询缓慢的问题。</p><blockquote><p>并发高，就分库；数据量大，就分表。</p></blockquote><p>所以具体要不要分库分表要看算不算符合上述情况。</p><h2 id="如何分库"><a href="#如何分库" class="headerlink" title="如何分库"></a>如何分库</h2><h3 id="垂直分库"><a href="#垂直分库" class="headerlink" title="垂直分库"></a>垂直分库</h3><p>即根据业务边界来分库，例如原先的电商平台将所有数据都存放到一个库中，现在可以分出——订单库、商品库、用户库等</p><h3 id="水平分库"><a href="#水平分库" class="headerlink" title="水平分库"></a>水平分库</h3><p>将一个库分为多个相同的库，提高系统能承载的并发请求，例如订单库1、订单库2、订单库3。（尤其是双11期间大量订单）</p><h2 id="如何分表"><a href="#如何分表" class="headerlink" title="如何分表"></a>如何分表</h2><h3 id="垂直分表"><a href="#垂直分表" class="headerlink" title="垂直分表"></a>垂直分表</h3><p>将原先一张表中的许多属性分别存到不同表中，比如原先商品表里可能有很多属性，比如价格、商品名称、上架商家、库存数量等。那就可以分成两个表，一个是价格、商品名称这些基础信息存一个表，另外对于不同商家有不同的商品、对应的库存数量这些信息再存一个表。</p><h3 id="水平分表"><a href="#水平分表" class="headerlink" title="水平分表"></a>水平分表</h3><p>水平分表是分为多个功能相同的小表。</p><h2 id="分库分表的算法"><a href="#分库分表的算法" class="headerlink" title="分库分表的算法"></a>分库分表的算法</h2><h3 id="范围分片"><a href="#范围分片" class="headerlink" title="范围分片"></a>范围分片</h3><ol><li>按时间范围分</li><li>按地域维度分</li><li>按数据大小分（比如user_id从1-1000一个表、1001-2000一个表……）</li></ol><h3 id="hash分片"><a href="#hash分片" class="headerlink" title="hash分片"></a>hash分片</h3><blockquote><p>Sharding Key就是分表的依据。也就是用于分表的那个属性。</p></blockquote><p>简单来说就是对sharding key取模后存储到对应的表中。但是在分表的数量需要动态扩展（集群伸缩）时，简单取模哈希，存在一个问题——原先已经放入表中的数据位置，要大量的重新hash计算后移动。</p><p>改进方式：一致性哈希（简单来说一致性哈希的原理就是对$2^{31} -1$取模+虚拟节点 决定放到哪个位置，减少了集群伸缩时数据的大量移动带来的性能消耗）（关键词：环形、增加虚拟节点、顺时针距离最近）</p><h3 id="查表分片"><a href="#查表分片" class="headerlink" title="查表分片"></a>查表分片</h3><p>就是多增一个表，要查询数据前，先查询这个表来判断所需数据在那个表。但是需要注意的是，这个新增的表数据量不能太大，否则本身也会成为性能瓶颈。（毕竟是多查了张表）</p><h2 id="分库分表架构模式"><a href="#分库分表架构模式" class="headerlink" title="分库分表架构模式"></a>分库分表架构模式</h2><h3 id="客户端模式"><a href="#客户端模式" class="headerlink" title="客户端模式"></a>客户端模式</h3><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL分库分表/blog-20251124173911070.png" alt="image-20251124153718701" style="zoom: 75%;" /></p><p>业务代码有侵入。</p><p>java开发中通过提供jar方式实现，例如ShardingSphere-JDBC，美团的Zebra、MTDDL，阿里的TDDL</p><h3 id="代理模式"><a href="#代理模式" class="headerlink" title="代理模式"></a>代理模式</h3><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL分库分表/blog-20251124173911071.png" alt="image-20251124153733491" style="zoom: 85%;" /></p><p>业务代码无侵入，对业务方透明。</p><p>例如ShardingSphere-Proxy，阿里的MyCat，美团的Meituan Atlas，百度的Heisenberg。</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> MySQL </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>MySQL主从架构</title>
+      <link href="/2025/11/24/MySQL/MySQL%E4%B8%BB%E4%BB%8E%E6%9E%B6%E6%9E%84/"/>
+      <url>/2025/11/24/MySQL/MySQL%E4%B8%BB%E4%BB%8E%E6%9E%B6%E6%9E%84/</url>
+      
+        <content type="html"><![CDATA[<h1 id="MySQL主从架构"><a href="#MySQL主从架构" class="headerlink" title="MySQL主从架构"></a>MySQL主从架构</h1><p>主从架构是用于解决什么问题？</p><p>用于解决数据库性能瓶颈的。单个数据库下，能同时连接的客户端数量有限，这时候容易成为瓶颈；另外，单个MySQL服务器，如果宕机了，那么就没有应急方案，从事导致整个系统挂掉。</p><p>主从架构分为有多重类型——一主一从、一主多从（一主二从一备主）</p><p>那么就算主库此时挂了，从库也能充当主库使用。</p><p>同时，在这种架构下，能实现读写的分离，提高并发度（尤其是<strong>读多写少</strong>的场景下）。主库负责处理写请求、从库负责读请求。</p><h2 id="主从数据同步的基石——binlog、relaylog"><a href="#主从数据同步的基石——binlog、relaylog" class="headerlink" title="主从数据同步的基石——binlog、relaylog"></a>主从数据同步的基石——binlog、relaylog</h2><p>binlog是二进制日志，用于在更新数据时写入。可以理解为里面内容就是写入MySQL的最新数据。</p><p>relaylog，叫中继日志，是从库才有的日志，正如名字一样，“中继”，也就是从主库那里复制binlog日志，或者供别的从库复制relaylog使用。relaylog就是从库用于更新数据的</p><blockquote><p>不过还要看binlog的格式，Statement格式是基于SQL实现复制（好处是日志存储空间小、弊端是NOW()等函数调用结果不一致）、Row格式是基于行信息复制（相当于复制数据、好处是数据无误坏处是存储空间大）、Mixed是混合复制（智能选择使用statement还是row）</p></blockquote><p>具体流程为——当一条写请求来后，更新了主库的binlog日志，然后主库会创建一个log dump线程，用于向从库发送bin log日志内容，从库开启同步后，会创建一个IO线程用来连接主库，请求主库的bin log，从库接收到主库发来的bin log日志后，保存在本机的relay log中。接着从库会有一个线程负责读取relay log日志内容，更新从库的数据，完成主库与从库之间数据同步。</p><h2 id="主从复制类型"><a href="#主从复制类型" class="headerlink" title="主从复制类型"></a>主从复制类型</h2><blockquote><p>图源<a href="https://juejin.cn/post/7269953746851266620#heading-0">https://juejin.cn/post/7269953746851266620#heading-0</a></p></blockquote><p>主从复制有多种类型，本质还是同步时机的不同、同步方式的区别（指的是多源复制）。不同类型的复制都会达到数据的最终一致性，只是达到一致性的<strong>延迟</strong>有所不同。</p><p>大致的流程都一样，只是些许步骤的顺序不同。</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441170.webp" alt="MySQL 主从复制.png" style="zoom: 65%;" /></p><ol><li><p>异步复制（这是MySQL默认的复制策略）</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441172.webp" alt="MySQL 异步复制.png" style="zoom:95%;" /></p><ul><li>客户端事务提交-&gt;写binlog日志-&gt;通知log dump线程向从库发送bin log日志-&gt;返回客户端成功响应</li><li>这种方式不用等待从库更新relay log，直接返回客户端成功响应，速度最快。但是在“客户端收到成功响应”到“从库同步数据完成前”这段时间，如果客户端立马向从库发起读请求，读到的数据可能是旧数据。</li></ul></li><li><p>全同步复制</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441173.webp" alt="MySQL 全同步复制.png"></p><ul><li>客户端事务提交-&gt;写binlog日志-&gt;通知log dump线程向从库发送bin log日志-&gt;等待<strong>所有从库</strong>写入relay log-&gt;所有从库同步完数据-&gt;返回客户端成功响应</li><li>全同步复制需要等待所有从库同步完成才返回客户端成功响应，数据一致性最高，但是性能最差。</li></ul></li><li><p>半同步复制</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441174.webp" alt="MySQL 半同步复制.png"></p><ul><li>客户端事务提交-&gt;写binlog日志-&gt;通知log dump线程向从库发送bin log日志-&gt;至少有一个<strong>从库</strong>写入relay log-&gt;返回客户端成功响应</li><li>半同步复制相比于全同步复制，性能更高（因为只需要一个从库写入relay log）</li></ul></li><li><p>增强半同步复制</p><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441175.webp" alt="MySQL 增强半同步复制.png"></p><ul><li>客户端事务提交-&gt;写binlog日志-&gt;通知log dump线程向从库发送bin log日志-&gt;至少有一个<strong>从库</strong>写入relay log-&gt;主库提交存储引擎-&gt;返回客户端成功响应</li><li>增强半同步和半同步很像，但是增强半同步复制方式，会等relay log写入后，主库才会提交存储引擎（避免relay log的数据被回滚失效）</li></ul></li><li><p>多源复制</p><ul><li><p>多源复制是指一个从库的数据是从多个主库复制而来，常用语OLAP业务查询</p><blockquote><p>OLAP（Online Analytical Processing，联机分析处理）业务是一种以<strong>快速、多维、交互式分析</strong>大量历史数据为核心的数据处理模式，其主要目的是支持商业智能（BI）和决策支持系统，通过对数据进行切片、钻取、旋转等操作，帮助用户从不同角度洞察业务趋势、发现潜在规律并制定战略决策，与处理日常交易的OLTP（联机事务处理）业务形成鲜明对比。</p></blockquote></li><li><p><img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL主从架构/blog-20251124150441176.png" alt="Drawing 8.png" style="zoom: 85%;" /></p></li></ul></li></ol><h2 id="主从配置实践"><a href="#主从配置实践" class="headerlink" title="主从配置实践"></a>主从配置实践</h2><p>see 博客（如何实践配置）</p><p><a href="https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/MySQL%E5%AE%9E%E6%88%98%E5%AE%9D%E5%85%B8/15%20%20MySQL%20%E5%A4%8D%E5%88%B6%EF%BC%9A%E6%9C%80%E7%AE%80%E5%8D%95%E4%B9%9F%E6%9C%80%E5%AE%B9%E6%98%93%E9%85%8D%E7%BD%AE%E5%87%BA%E9%94%99.md">https://learn.lianglianglee.com/%E4%B8%93%E6%A0%8F/MySQL%E5%AE%9E%E6%88%98%E5%AE%9D%E5%85%B8/15%20%20MySQL%20%E5%A4%8D%E5%88%B6%EF%BC%9A%E6%9C%80%E7%AE%80%E5%8D%95%E4%B9%9F%E6%9C%80%E5%AE%B9%E6%98%93%E9%85%8D%E7%BD%AE%E5%87%BA%E9%94%99.md</a></p><h2 id="读写分离延迟问题"><a href="#读写分离延迟问题" class="headerlink" title="读写分离延迟问题"></a>读写分离延迟问题</h2><p>see 博客（更好的解决读写分离延迟问题）</p><p><a href="https://learn.lianglianglee.com/%e4%b8%93%e6%a0%8f/MySQL%e5%ae%9e%e6%88%98%e5%ae%9d%e5%85%b8/16%20%20%e8%af%bb%e5%86%99%e5%88%86%e7%a6%bb%e8%ae%be%e8%ae%a1%ef%bc%9a%e5%a4%8d%e5%88%b6%e5%bb%b6%e8%bf%9f%ef%bc%9f%e5%85%b6%e5%ae%9e%e6%98%af%e4%bd%a0%e7%94%a8%e9%94%99%e4%ba%86.md">https://learn.lianglianglee.com/%e4%b8%93%e6%a0%8f/MySQL%e5%ae%9e%e6%88%98%e5%ae%9d%e5%85%b8/16%20%20%e8%af%bb%e5%86%99%e5%88%86%e7%a6%bb%e8%ae%be%e8%ae%a1%ef%bc%9a%e5%a4%8d%e5%88%b6%e5%bb%b6%e8%bf%9f%ef%bc%9f%e5%85%b6%e5%ae%9e%e6%98%af%e4%bd%a0%e7%94%a8%e9%94%99%e4%ba%86.md</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> MySQL </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>MySQL架构</title>
+      <link href="/2025/11/18/MySQL/MySQL%E6%9E%B6%E6%9E%84/"/>
+      <url>/2025/11/18/MySQL/MySQL%E6%9E%B6%E6%9E%84/</url>
+      
+        <content type="html"><![CDATA[<h1 id="MySQL架构"><a href="#MySQL架构" class="headerlink" title="MySQL架构"></a>MySQL架构</h1><h2 id="MySQL整体架构"><a href="#MySQL整体架构" class="headerlink" title="MySQL整体架构"></a>MySQL整体架构</h2><p>MySQL整体架构大体分为两层——Server层和执行引擎层。</p><p>Server层负责建立连接，SQL的分析、分析和执行SQL。</p><p>执行引擎层负责存储和提取数据。</p><p><strong>从一条select语句来看各个结构作用、如何配合工作</strong>：</p><ol><li>连接器先建立连接。（比如使用<code>mysql -uroot -pxxxyyy</code>与数据库建立连接），连接器负责与客户端建立连接。</li><li>查询缓存，这里查询的是Server层中的缓存，如果之前有一模一样的SQL语句则直接返回结果（但是在Server层的缓存很鸡肋，必须要SQL语句完全一致，命中率很低，后续MySQL版本中移除了，而且在执行引擎层也有缓存，那个缓存命中率更高）</li><li>解析器解析SQL语句，也就是词法分析、语法分析。</li><li>然后是执行SQL，具体还可以细分步骤如下：<ul><li>预处理器大概判断该sql能否成功执行（比如检查要查询的表有没有）</li><li>优化器指定执行计划（有哪些索引可用、具体使用哪个索引、是否有索引覆盖、索引下推等）</li><li>执行器执行sql（也就是从执行引擎调用api查询数据）</li></ul></li></ol><h2 id="后起之秀：InnoDB存储引擎"><a href="#后起之秀：InnoDB存储引擎" class="headerlink" title="后起之秀：InnoDB存储引擎"></a>后起之秀：InnoDB存储引擎</h2><p>相比于MyISAM，InnoDB是现在用的最多的存储引擎。</p><ul><li>它支持事务<ul><li>有redo-log保证事务的持久性，undo-log支持事务的原子性。</li><li>MyISAM没有这两个日志，所以多条语句的回滚做不到（无undo-log）</li></ul></li><li>有更小的锁粒度（行级锁）（也就有更高的并发度）<ul><li>而MyISAM只支持表锁。</li></ul></li><li>使用聚簇索引（数据和索引存储在一起）存储数据<ul><li>而MyISAM引擎的表数据和索引数据分开存储，不支持聚簇索引。</li></ul></li></ul><p>这些特性说明了InnoDB在并发场景下具有更好的读写性能。</p><h2 id="InnoDB行数据如何存储"><a href="#InnoDB行数据如何存储" class="headerlink" title="InnoDB行数据如何存储"></a>InnoDB行数据如何存储</h2><p>首先表空间结构层次为：表-段-区-页-行。</p><p>总之知道数据行是存储在页中就行，默认每个页大小16KB，是B+树中的数据存储基本单位，也是数据从内存刷到硬盘的基本单位（页）（为了减少IO次数）。当数据量变大时，B+树中存的会从页变成区。</p><p>InnoDB行格式（算了不想写，记不起来了，估计以后也会忘，丢几篇博客在下面：）</p><p><a href="https://relph1119.github.io/mysql-learning-notes/#/mysql/04-%E4%BB%8E%E4%B8%80%E6%9D%A1%E8%AE%B0%E5%BD%95%E8%AF%B4%E8%B5%B7-InnoDB%E8%AE%B0%E5%BD%95%E7%BB%93%E6%9E%84">04-从一条记录说起-InnoDB记录结构</a></p><p><a href="https://xiaolincoding.com/mysql/base/row_format.htm">MySQL一行记录是怎么存储的</a></p><p><a href="https://juejin.cn/post/7160557698642083847#heading-8">InnoDB vs MyISAM</a></p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> MySQL </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>MySQL日志</title>
+      <link href="/2025/11/18/MySQL/MySQL%E6%97%A5%E5%BF%97/"/>
+      <url>/2025/11/18/MySQL/MySQL%E6%97%A5%E5%BF%97/</url>
+      
+        <content type="html"><![CDATA[<h1 id="MySQL日志"><a href="#MySQL日志" class="headerlink" title="MySQL日志"></a>MySQL日志</h1><p>关键在于掌握undo-log、redo-log和bin-log的<strong>概念、作用、结构</strong>。</p><blockquote><p>自己写的博客本质还是给自己看的（更是是自己输出的过程），所以从别人博客那里复制粘贴没必要。所以日志相关的内容，我这里写的更多的是理解性的，也比较浅。更深的、系统性的见下面两篇博客：</p><p><a href="https://xiaolincoding.com/mysql/log/how_update.html">https://xiaolincoding.com/mysql/log/how_update.html</a></p><p><a href="https://juejin.cn/post/7157956679932313608">https://juejin.cn/post/7157956679932313608</a></p></blockquote><h2 id="Undo-log"><a href="#Undo-log" class="headerlink" title="Undo-log"></a>Undo-log</h2><p>Undo-log，回滚日志，是用于保证事务ACID性质中<strong>原子性</strong>的日志；另外还有个作用，<strong>MVCC（多版本控制）通过Read View + Undo log日志来实现</strong>（因为回滚日志能形成记录的版本链）。</p><p>为什么说undo log保证了原子性呢？而且一条普通的更新语句也不是事务呀？其实<code>autocommit</code>参数默认开启，所以执行一条update语句也是开启事务的。其次就是如何保证原子性的——假设一个事务执行失败，由于undo log日志有旧版本的数据信息，所以事务回滚后能将数据恢复到事务执行前的样子，这就保证了事物的原子性（同时失败）。</p><p>具体来说，undo log里记录数据时会有两个隐藏列——<code>trx_id</code>，用于表示该版本数据是哪个事务修改后的，<code>roll_ptr</code>，用于指向上一个版本的数据（便于回滚或查看旧版本数据（变相支持了<strong>隔离性</strong>））。</p><h2 id="Redo-log"><a href="#Redo-log" class="headerlink" title="Redo-log"></a>Redo-log</h2><p>Redo-log，重做日志，是用于保证事务ACID性质中<strong>持久性</strong>的日志。</p><p>为什么说redo log保证了持久性呢？因为InnoDB在插入一条数据时，会先将这条新数据写入到redo log中，之后后台进程再去把redo log中的脏页数据刷入硬盘。</p><p>那为什么不直接把数据写入硬盘中而是要使用redo log呢？主要是出于性能方面考虑，以及在MySQL服务宕机后有更好的恢复效果。如果是直接写入数据，那么要找到数据在硬盘中的物理地址后再写入，属于<strong>随机存储</strong>，而写入redo log就是直接在指定位置后面<strong>顺序写入</strong>，效率更高，所以写入redo log直接返回客户端“数据已成功写入”，这样的响应时间更短。（后续把真实数据写入硬盘有专门的异步线程来做）。那么在没有把redo log中的数据写入硬盘呢，MySQL服务就宕机了，也没关系，redo log已经写入了数据缓存页，那等MySQL服务恢复后就能把数据写入。（如果是redo中都没写入就宕机……那么sql就没执行成功，也返回给服务端成功的提示，所以问题不大）</p><blockquote><p>实际上InnoDB在Buffer Pool（缓冲池）中，不仅缓存了数据页、索引页，还有插入缓存页、undo页等信息。也就是有redo log的缓存（所以redo log可以选择不是每次事务提交都刷盘）——这个可以通过redo log相关参数来配置刷盘策略。</p><blockquote><p>why？每次刷盘和先放在缓存再一次刷入，前者保证数据的持久性，后者提高性能（减少IO次数），各有利弊，看实际而权衡。（默认策略是事务提交就刷盘）</p></blockquote></blockquote><p>关于redo log的结构，默认有两个日志文件，然后进行<strong>循环写</strong>。<img src="https://raw.githubusercontent.com/Yukinoshita52/StructureImages/main/blogs/MySQL日志/blog-20251118192326286.png" alt="img" style="zoom: 50%;" /></p><p>红色部分为空闲空间，蓝色部分为脏页数据，如果write pos指针和check point指针相遇则说明空间已满，需要刷盘。</p><h2 id="Bin-log"><a href="#Bin-log" class="headerlink" title="Bin-log"></a>Bin-log</h2><p>Bin-log，二进制日志，和redo log类似，也是记录数据库表结构变化或数据变化的日志，但是Bin-log是Server层的，undo-log和redo-log是InnoDB执行引擎特有的。</p><p>bin log的作用更多是<strong>备份恢复、主从复制</strong>。而redo log是掉电等故障恢复。</p><blockquote><p>主从复制，是MySQL高可用里面的内容（现在就理解为是一种能使MySQL具有更高可用性的架构模式）。一主一从、一主多从。（读写分离……balabala）</p></blockquote><p>bin log与redo log不同的是，它是追加写，一个文件写满了就新来一个文件再写。（所以想要恢复数据库的数据还是要看bin log，而不是redo log）</p><blockquote><p>redo log更像是一种“短期内”、“小型”故障的自动恢复；但是一不小心删了整个数据库，那么redo log就无力回天了，要从本地的bin log进行数据恢复。（避免删库跑路）</p></blockquote><p>bin log日志有三种格式：Statement、Row 及 Mixed。</p><p>Statement格式：基于SQL语句的复制。</p><p>Row格式：基于行信息的复制。</p><p>Mixed格式：混合模式复制</p><h2 id="Error-log"><a href="#Error-log" class="headerlink" title="Error-log"></a>Error-log</h2><p>error-log，错误日志，用于线上问题排查的日志。</p><h2 id="Slow-log"><a href="#Slow-log" class="headerlink" title="Slow-log"></a>Slow-log</h2><p>slow-log，慢查询日志，但是默认是不开启的，而且需要自己设定一个合理的阈值（什么样才算慢查询）。</p><h2 id="General-log"><a href="#General-log" class="headerlink" title="General-log"></a>General-log</h2><p>查询日志，通常在开启慢查询前前先用general log，看看压测情况下所有业务的sql执行时间怎么样，最后再对slow log设置一个稍大于平均sql执行的时间，开启慢查询日志。（线上一定要关闭general log，否则每次sql都要写入general log）</p><h2 id="Relay-log"><a href="#Relay-log" class="headerlink" title="Relay-log"></a>Relay-log</h2><p>relay-log，中继日志，仅存在于主从架构的从机上。relay-log和bin-log一模一样，就是从主机复制过来的。</p><h2 id="各日志参数"><a href="#各日志参数" class="headerlink" title="各日志参数"></a>各日志参数</h2><blockquote><p>见此文<a href="https://juejin.cn/post/7157956679932313608#heading-10，可以看到各种日志相关的参数设置解释。">https://juejin.cn/post/7157956679932313608#heading-10，可以看到各种日志相关的参数设置解释。</a></p></blockquote>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> MySQL </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>MySQL锁</title>
       <link href="/2025/11/17/MySQL/MySQL%E9%94%81/"/>
       <url>/2025/11/17/MySQL/MySQL%E9%94%81/</url>
