@@ -4,6 +4,63 @@
   
     
     <entry>
+      <title>技术图谱</title>
+      <link href="/2025/12/20/%E6%8A%80%E6%9C%AF%E5%9B%BE%E8%B0%B1/"/>
+      <url>/2025/12/20/%E6%8A%80%E6%9C%AF%E5%9B%BE%E8%B0%B1/</url>
+      
+        <content type="html"><![CDATA[<h1>技术图谱</h1><blockquote><p>这个置顶帖暂时先这么写着，后续改成导航一样的……有技术路线、也有其他方面的（感觉得等这阵子忙完……）</p></blockquote><blockquote><p>附带优先级（数字高优先级越高）</p></blockquote><p>【200】把项目学习完</p><p>【100】MySQL：博客内容系统梳理过，口头表述不行！面试过程被说了……要增强自己的语言表达！</p><p>【100】Redis：博客内容梳理了一部分（没写完，todo：1️⃣Redis线程模型、2️⃣缓存过期删除+缓存淘汰测录、3️⃣AOP、RDB持久化策略、4️⃣事务（+Lua）、5️⃣三种架构（主从复制模式、哨兵Sentinel模式、集群Cluster模式）、6️⃣缓存穿透、缓存击穿、缓存雪崩）、口头表述要加强！</p><p>【100】Spring框架：有点太大了，全部写的话有点多，写一下 IoC 和 AOP 的博客。（这部分感觉偏实际开发）</p><p>【100】leetcode算法，最近太忙了都没刷……现阶段确实不需要刷了……先提高工程能力再说，以前刷的够多了……<a href="https://leetcode.cn/u/mu-xue-avid/">个人主页</a>，等项目做完了回归每天刷题节奏（但是少刷点一天2题差不多）</p><p>【70】消息队列：现在只会简单的使用+懂一点基本的概念（Topic、生产者、消费者），用来开发应该没问题，建议上面的扎实了以后来补一块技术。</p><p>【15】Java 集合框架（没写博客梳理）：Map、Collection：（List、Set、Queue）</p><p>【15】JUC：没写博客梳理，建议写博客（关于表述：经常用到的话总能说出来……吧，多去用！）</p><p>【10】设计模式（提高）</p><p>【5】Java 基础（经常使用，但没写博客系统梳理过）：面向对象、语言特性、数据结构、常见类、异常、泛型、反射、注解、SPI、I/O、Java 8新特性</p><p>【0】JVM：写了博客（需要拆分内容），语言表述能力不行，优先级暂时不高</p><p>【0】Linux博客梳理</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> other </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>docker个人实践记录</title>
+      <link href="/2025/12/16/other/docker%E4%B8%AA%E4%BA%BA%E5%AE%9E%E8%B7%B5%E8%AE%B0%E5%BD%95/"/>
+      <url>/2025/12/16/other/docker%E4%B8%AA%E4%BA%BA%E5%AE%9E%E8%B7%B5%E8%AE%B0%E5%BD%95/</url>
+      
+        <content type="html"><![CDATA[<h1>Docker 实践</h1><blockquote><p>都是 windows 平台</p></blockquote><h2 id="日常-MySQL">日常 MySQL</h2><p>当然数据库启动后，可以使用很多可视化工具进行查看。不过我比较喜欢使用 docker 命令管理（主要是感觉开个终端查看也很方便）</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">-- 查看正在运行的容器</span><br><span class="line">docker ps </span><br><span class="line"></span><br><span class="line">-- 进入容器内部</span><br><span class="line">docker exec -it &lt;mysql-x.x&gt; bash </span><br><span class="line"></span><br><span class="line">-- 进入后：</span><br><span class="line"><span class="meta prompt_">&gt;</span><span class="language-bash">&gt; mysql -uroot -p123456</span></span><br><span class="line"></span><br><span class="line">-- 然后就是数据库操作：</span><br><span class="line">show databases;</span><br><span class="line">use ...;</span><br><span class="line">show tables;</span><br><span class="line">desc ...;</span><br><span class="line">select * from ... limit 0,10;</span><br></pre></td></tr></table></figure><h2 id="查看容器卷挂载情况">查看容器卷挂载情况</h2><p>场景：我项目学习时，需要使用到 canal 对数据库的 binlog 进行订阅，然后发送消息，再去实现 Redis 数据的同步更新。</p><p>因为 canal 是依赖于 binlog 日志的，所以要开启 MySQL 的 binlog 日志。由于没开，所以写进行配置——查到配置是要写进 my.conf 配置文件，但是由于是 docker 容器，所以得看一下卷挂载路径，否则进入容器内部、即使修改了配置文件，下次启动时还是会失效。</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916050.png" alt="image-20251216155252457" style="zoom: 55%;" /><p>在查资料时，学到了下面一个指令：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-- 查看容器启动时的各种参数</span><br><span class="line">docker inspect &lt;container&gt;</span><br><span class="line"></span><br><span class="line">-- windows 平台可以使用以下的过滤语句</span><br><span class="line">-- linux 使用 | grep（但是win显然不是）</span><br><span class="line">docker inspect mysql-5.7 | Select-String -Pattern &quot;Source|Destination|Env&quot;</span><br></pre></td></tr></table></figure><p>使用<code>| Select-String -Pattern &quot;&quot;</code>进行过滤操作（直接使用 inspect 也行，就是信息有点多）</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916052.png" alt="image-20251216155706445" style="zoom: 90%;" /><p>然后根据旧容器的信息，整理出来新的容器启动参数（为了对旧数据迁移、新增-v配置挂载参数）：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">docker run --name mysql-5.7 </span><br><span class="line">-p 3306:3306 </span><br><span class="line">-e MYSQL_ROOT_PASSWORD=123456 </span><br><span class="line">-e MYSQL_ROOT_HOST=% </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">注意下面的 -v 是数据卷挂载，由于之前的数据挂载是虚拟的，所以迁移时要带上（否则旧数据丢失）</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">这个内容是在 docker inspect 的完整输出里面“amount”参数里可以找到</span></span><br><span class="line">-v 8fccc55c224db88d6d18cf70cb95670c4500977e9553d6c33272e1942225e21c:/var/lib/mysql </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">新增的配置文件挂载：</span></span><br><span class="line">-v E:/develop_tools/Docker_data/mysql-5.7/conf/canal.cnf:/etc/mysql/conf.d/canal.cnf </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">指定镜像：</span></span><br><span class="line">-d mysql:5.7.36</span><br></pre></td></tr></table></figure><p>进入容器后，进行验证，发现确实映射到了宿主机的文件：</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916053.png" alt="image-20251216161519163" style="zoom: 85%;" /><p>但是修改完了还是没能让 binlog 开启：</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916054.png" alt="image-20251216162713237" style="zoom: 65%;" /><p>（问ai说是字符编码有问题（？））所以使用 vscode 修改其编码为 UTF-8 和 LF（实际没去验证，但是还是改了）：</p><p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916055.png" alt="image-20251216161644773"></p><p>但是修改完后，查看 binlog 有无开启，还是没开启的状态。所以问题不在于此……</p><p>终极方法使用<code>docker logs mysql-5.7</code>查看日志信息——</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916056.png" alt="image-20251216162832834" style="zoom: 50%;" /><p>关键信息：<code>mysqld: [Warning] World-writable config file '/etc/mysql/conf.d/canal.cnf' is ignored.</code></p><p>意思就是这个配置文件的权限太大了，mysql任务不安全，于是忽略了这个配置文件。</p><p>使用 <code>chmod</code> 命令移除其他用户的写入权限（将权限设置为 <code>644</code> 或 <code>600</code> 等）：</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it mysql-5.7 /bin/bash -c &quot;chmod 644 /etc/mysql/conf.d/canal.cnf&quot;</span><br></pre></td></tr></table></figure><p>之后<code>docker restart mysql-5.7</code>，问题解决：</p><img src="https://blogs.muxueavid.top/blogs/2025/12/20251220170916057.png" alt="image-20251216163652851" style="zoom: 85%;" />]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> docker </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>JSON处理工具</title>
+      <link href="/2025/12/14/Java/JSON%E5%A4%84%E7%90%86%E5%B7%A5%E5%85%B7/"/>
+      <url>/2025/12/14/Java/JSON%E5%A4%84%E7%90%86%E5%B7%A5%E5%85%B7/</url>
+      
+        <content type="html"><![CDATA[<h1>JSON 处理工具</h1><p>使用依赖</p><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.fastjson2<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>fastjson2<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> com.alibaba.fastjson2.JSON;</span><br><span class="line"><span class="keyword">import</span> com.alibaba.fastjson2.JSONObject;</span><br></pre></td></tr></table></figure><p>使用 JSONObject 和 JSON 即可</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Java </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Redis 底层数据结构</title>
       <link href="/2025/12/14/Redis/Redis-%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/"/>
       <url>/2025/12/14/Redis/Redis-%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/</url>
@@ -84,7 +141,7 @@
       <link href="/2025/12/03/Java/Hutool%E5%B7%A5%E5%85%B7%E5%8C%85/"/>
       <url>/2025/12/03/Java/Hutool%E5%B7%A5%E5%85%B7%E5%8C%85/</url>
       
-        <content type="html"><![CDATA[<h1>Hutool工具包</h1><blockquote><p><a href="https://www.hutool.cn/docs/#/">https://www.hutool.cn/docs/#/</a></p></blockquote><p>工具类的使用，写博客的优先级实在很低……除非实际项目规范要用到</p><p>（比如这样的规范：能用Hutool已有方法就用，禁止重复造轮子）</p><p>暂不知道怎么写这部分内容……项目中用到了具体的方法再来补充吧……</p><p><code>BeanUtil.toBean()</code></p><p><code>BeanUtil.beanToMap()</code></p>]]></content>
+        <content type="html"><![CDATA[<h1>Hutool工具包</h1><blockquote><p><a href="https://www.hutool.cn/docs/#/">https://www.hutool.cn/docs/#/</a></p></blockquote><p>工具类的使用，写博客的优先级实在很低……除非实际项目规范要用到</p><p>（比如这样的规范：能用Hutool已有方法就用，禁止重复造轮子）</p><p>暂不知道怎么写这部分内容……项目中用到了具体的方法再来补充吧……</p><h2 id="BeanUtil">BeanUtil</h2><p><code>BeanUtil#toBean</code></p><p><code>BeanUtil#beanToMap</code></p><h2 id="DateUtil">DateUtil</h2><p><code>DateUtil#offsetHour</code></p><h2 id="StrUtil">StrUtil</h2><p><code>StrUtil#builder()...</code></p><h2 id="ListUtil">ListUtil</h2><p><code>ListUtil#of</code></p><h2 id="IdUtil">IdUtil</h2><p><code>IdUtil#getSnowflakeNextId</code></p>]]></content>
       
       
       
