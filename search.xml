@@ -80,25 +80,6 @@
     
     
     <entry>
-      <title>技术图谱</title>
-      <link href="/2025/12/20/%E6%8A%80%E6%9C%AF%E5%9B%BE%E8%B0%B1/"/>
-      <url>/2025/12/20/%E6%8A%80%E6%9C%AF%E5%9B%BE%E8%B0%B1/</url>
-      
-        <content type="html"><![CDATA[<h1 id="技术图谱"><a href="#技术图谱" class="headerlink" title="技术图谱"></a>技术图谱</h1><blockquote><p>这个置顶帖暂时先这么写着，后续改成导航一样的……有技术路线、也有其他方面的（感觉得等这阵子忙完……）</p><p>附带优先级（数字高优先级越高）</p></blockquote><p>【200】项目学习</p><p>【100】MySQL：增强表述</p><p>【100】Redis：博客todo：4️⃣事务（+Lua）、5️⃣三种架构（主从复制模式、哨兵Sentinel模式、集群Cluster模式）、6️⃣缓存穿透、缓存击穿、缓存雪崩 +增强表述</p><p>【100】Spring框架：博客todo：IoC 和 AOP 的博客。（这部分感觉偏实际开发）</p><p>【100】leetcode算法，最近太忙了都没刷……现阶段确实不需要刷了……先提高工程能力再说，以前刷的够多了……<a href="https://leetcode.cn/u/mu-xue-avid/">个人主页</a>，等项目做完了回归每天刷题节奏（但是少刷点一天2题差不多）</p><p>【70】消息队列：现在只会简单的使用+懂一点基本的概念（Topic、生产者、消费者），用来开发应该没问题，建议上面的扎实了以后来补一块技术。</p><p>【15】Java 集合框架（没写博客梳理）：Map、Collection：（List、Set、Queue）</p><p>【15】JUC：没写博客梳理，建议写博客（关于表述：经常用到的话总能说出来……吧，多去用！）</p><p>【10】设计模式（提高）</p><p>【5】Java 基础（经常使用，但没写博客系统梳理过）：面向对象、语言特性、数据结构、常见类、异常、泛型、反射、注解、SPI、I/O、Java 8新特性</p><p>【0】JVM：写了博客（需要拆分内容），语言表述能力不行，优先级暂时不高</p><p>【0】Linux博客梳理</p>]]></content>
-      
-      
-      
-        <tags>
-            
-            <tag> other </tag>
-            
-        </tags>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>docker个人实践记录</title>
       <link href="/2025/12/16/other/docker%E4%B8%AA%E4%BA%BA%E5%AE%9E%E8%B7%B5%E8%AE%B0%E5%BD%95/"/>
       <url>/2025/12/16/other/docker%E4%B8%AA%E4%BA%BA%E5%AE%9E%E8%B7%B5%E8%AE%B0%E5%BD%95/</url>
