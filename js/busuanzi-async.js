@@ -1,48 +1,34 @@
 (function() {
-    // 1. 立即设置一个全局占位函数，防止不蒜子脚本加载后找不到回调导致报错
-    const bszCallbackName = 'BusuanziCallback_' + Math.floor(Math.random() * 1000000000000);
-    window[bszCallbackName] = function(data) {
-        try {
-            if (data.site_pv) document.getElementById('busuanzi_value_site_pv').innerHTML = data.site_pv;
-            if (data.site_uv) document.getElementById('busuanzi_value_site_uv').innerHTML = data.site_uv;
-            if (data.page_pv) document.getElementById('busuanzi_value_page_pv').innerHTML = data.page_pv;
+    // 1. 拦截所有脚本插入行为
+    const originalInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function(newNode, referenceNode) {
+        if (newNode && newNode.tagName === 'SCRIPT' && newNode.src) {
+            const url = newNode.src;
             
-            ['site_pv', 'site_uv', 'page_pv'].forEach(id => {
-                const el = document.getElementById(`busuanzi_container_${id}`);
-                if (el) el.style.display = 'inline';
-            });
-        } catch (e) {}
-    };
+            // 匹配阻塞的动态数据接口
+            if (url.includes('busuanzi.ibruce.info/busuanzi?')) {
+                console.log('Detected blocking data request, converting to async...');
+                newNode.async = true;
+                
+                // 强制设置超时处理：如果 5 秒没响应，直接视为失败
+                const timeout = setTimeout(() => {
+                    newNode.onerror();
+                }, 5000);
 
-    // 2. 拦截 document.createElement，将所有不蒜子请求强制转为异步
-    const originalCreateElement = document.createElement;
-    document.createElement = function(tagName) {
-        const el = originalCreateElement.apply(this, arguments);
-        if (tagName.toLowerCase() === 'script') {
-            const descriptor = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-            Object.defineProperty(el, 'src', {
-                set: function(value) {
-                    if (value.includes('busuanzi.ibruce.info')) {
-                        this.async = true; // 强制异步
-                        this.defer = true;
-                        // 针对 502 错误监听
-                        this.onerror = function() {
-                            console.warn('Busuanzi 502 detected. Silencing...');
-                            document.querySelectorAll('[id^="busuanzi_container_"]').forEach(c => c.style.display = 'none');
-                        };
+                newNode.onload = newNode.onerror = function() {
+                    clearTimeout(timeout);
+                    // 如果失败，清理占位符
+                    if (!window[url.split('jsonpCallback=')[1]]) {
+                        document.querySelectorAll('[id^="busuanzi_container_"]').forEach(el => el.remove());
                     }
-                    descriptor.set.call(this, value);
-                },
-                get: function() {
-                    return descriptor.get.call(this);
-                }
-            });
+                };
+            }
         }
-        return el;
+        return originalInsertBefore.apply(this, arguments);
     };
 
-    // 3. 处理 CSS，防止 502 时页面显示源代码占位符
+    // 2. CSS 预处理：默认隐藏所有计数区域
     const style = document.createElement('style');
-    style.innerHTML = '[id^="busuanzi_container_"] { display: none; }';
-    document.head.appendChild(style);
+    style.innerHTML = '[id^="busuanzi_container_"] { display: none !important; }';
+    document.documentElement.appendChild(style);
 })();
