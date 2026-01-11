@@ -1,34 +1,37 @@
 (function() {
-    // 1. 拦截所有脚本插入行为
-    const originalInsertBefore = Node.prototype.insertBefore;
-    Node.prototype.insertBefore = function(newNode, referenceNode) {
-        if (newNode && newNode.tagName === 'SCRIPT' && newNode.src) {
-            const url = newNode.src;
-            
-            // 匹配阻塞的动态数据接口
-            if (url.includes('busuanzi.ibruce.info/busuanzi?')) {
-                console.log('Detected blocking data request, converting to async...');
-                newNode.async = true;
-                
-                // 强制设置超时处理：如果 5 秒没响应，直接视为失败
-                const timeout = setTimeout(() => {
-                    newNode.onerror();
-                }, 5000);
-
-                newNode.onload = newNode.onerror = function() {
-                    clearTimeout(timeout);
-                    // 如果失败，清理占位符
-                    if (!window[url.split('jsonpCallback=')[1]]) {
-                        document.querySelectorAll('[id^="busuanzi_container_"]').forEach(el => el.remove());
-                    }
-                };
-            }
-        }
-        return originalInsertBefore.apply(this, arguments);
-    };
-
-    // 2. CSS 预处理：默认隐藏所有计数区域
+    // 1. 立即注入样式，确保 502 时页面视觉干净
     const style = document.createElement('style');
     style.innerHTML = '[id^="busuanzi_container_"] { display: none !important; }';
     document.documentElement.appendChild(style);
+
+    // 2. 劫持 createElement，修改属性
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tag) {
+        const el = originalCreateElement.apply(this, arguments);
+        if (tag.toLowerCase() === 'script') {
+            const descriptor = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+            Object.defineProperty(el, 'src', {
+                set: function(value) {
+                    if (value.includes('busuanzi.ibruce.info/busuanzi?')) {
+                        // 强制将 defer 转为 async，解除执行队列锁定
+                        this.async = true;
+                        this.defer = false;
+                        this.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+                        
+                        // 注入超时机制，防止接口挂起 2 分钟
+                        const timeout = setTimeout(() => {
+                            console.warn('Busuanzi Timeout - Terminating request.');
+                            this.src = ''; // 终止请求
+                            this.remove();
+                        }, 3000); // 3秒超时
+
+                        this.onload = this.onerror = () => clearTimeout(timeout);
+                    }
+                    descriptor.set.call(this, value);
+                },
+                get: function() { return descriptor.get.call(this); }
+            });
+        }
+        return el;
+    };
 })();
