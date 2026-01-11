@@ -1,37 +1,38 @@
 (function() {
-    // 1. 立即注入样式，确保 502 时页面视觉干净
+    // 1. 强制视觉静默
     const style = document.createElement('style');
     style.innerHTML = '[id^="busuanzi_container_"] { display: none !important; }';
     document.documentElement.appendChild(style);
 
-    // 2. 劫持 createElement，修改属性
-    const originalCreateElement = document.createElement;
-    document.createElement = function(tag) {
-        const el = originalCreateElement.apply(this, arguments);
-        if (tag.toLowerCase() === 'script') {
-            const descriptor = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
-            Object.defineProperty(el, 'src', {
-                set: function(value) {
-                    if (value.includes('busuanzi.ibruce.info/busuanzi?')) {
-                        // 强制将 defer 转为 async，解除执行队列锁定
-                        this.async = true;
-                        this.defer = false;
-                        this.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
-                        
-                        // 注入超时机制，防止接口挂起 2 分钟
-                        const timeout = setTimeout(() => {
-                            console.warn('Busuanzi Timeout - Terminating request.');
-                            this.src = ''; // 终止请求
-                            this.remove();
-                        }, 3000); // 3秒超时
+    // 2. 劫持 appendChild (核心：不蒜子 fetch 方法的出口)
+    const originalAppendChild = Element.prototype.appendChild;
+    Element.prototype.appendChild = function(node) {
+        if (node && node.tagName === 'SCRIPT' && node.src && node.src.includes('busuanzi.ibruce.info/busuanzi?')) {
+            // 强制转换属性
+            node.async = true;
+            node.defer = false; // 撤销阻塞执行队列的 defer
+            
+            // 注入硬超时断路器
+            const abortTimeout = setTimeout(() => {
+                console.warn('Busuanzi 502/Timeout: Terminating hang request.');
+                node.src = ''; 
+                node.remove();
+            }, 3000); // 3秒不响应即物理断开
 
-                        this.onload = this.onerror = () => clearTimeout(timeout);
-                    }
-                    descriptor.set.call(this, value);
-                },
-                get: function() { return descriptor.get.call(this); }
-            });
+            node.onload = node.onerror = () => clearTimeout(abortTimeout);
+            
+            console.log('Busuanzi appendChild intercepted.');
         }
-        return el;
+        return originalAppendChild.apply(this, arguments);
+    };
+
+    // 3. 补充拦截 insertBefore (不蒜子其他版本的备选出口)
+    const originalInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function(newNode, referenceNode) {
+        if (newNode && newNode.tagName === 'SCRIPT' && newNode.src && newNode.src.includes('busuanzi.ibruce.info/busuanzi?')) {
+            newNode.async = true;
+            newNode.defer = false;
+        }
+        return originalInsertBefore.apply(this, arguments);
     };
 })();
